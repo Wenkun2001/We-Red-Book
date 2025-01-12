@@ -1,0 +1,11 @@
+.idea
+test.db
+/webook/interactive/integration/data.sql
+/cronjob/demojob
+/webook/payment/config/cert
+
+qa
+/webook/tag/repository/dao/gorm.db
+webook/.DS_Store
+/webook/payment/config/cert/
+/webook/im/openim-docker/
