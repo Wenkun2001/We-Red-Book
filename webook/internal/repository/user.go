@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/domain"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
+	"time"
 )
 
 var (
@@ -41,5 +42,31 @@ func (repo *UserRepository) toDomain(u dao.User) domain.User {
 		Id:       u.Id,
 		Email:    u.Email,
 		Password: u.Password,
+		Nickname: u.Nickname,
+		Birthday: time.UnixMilli(u.Birthday),
+		AboutMe:  u.AboutMe,
 	}
+}
+
+func (repo *UserRepository) toEntity(u domain.User) dao.User {
+	return dao.User{
+		Id:       u.Id,
+		Email:    u.Email,
+		Password: u.Password,
+		Nickname: u.Nickname,
+		Birthday: u.Birthday.UnixMilli(),
+		AboutMe:  u.AboutMe,
+	}
+}
+
+func (repo *UserRepository) UpdateNonZeroFields(ctx context.Context, user domain.User) error {
+	return repo.dao.UpdateById(ctx, repo.toEntity(user))
+}
+
+func (repo *UserRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
+	u, err := repo.dao.FindById(ctx, uid)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return repo.toDomain(u), nil
 }
