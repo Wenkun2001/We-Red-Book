@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Wenkun2001/We-Red-Book/webook/config"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/cache"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web"
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"net/http"
@@ -20,8 +22,11 @@ import (
 
 func main() {
 	db := initDB()
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
 	server := initWebServer()
-	initUserHdl(db, server)
+	initUserHdl(db, redisClient, server)
 
 	//server := gin.Default()
 	server.GET("/hello", func(ctx *gin.Context) {
@@ -31,9 +36,11 @@ func main() {
 
 }
 
-func initUserHdl(db *gorm.DB, server *gin.Engine) {
+func initUserHdl(db *gorm.DB, redisClient redis.Cmdable, server *gin.Engine) {
+
 	ud := dao.NewUserDAO(db)
-	ur := repository.NewUserRepository(ud)
+	uc := cache.NewUserCache(redisClient)
+	ur := repository.NewUserRepository(ud, uc)
 	us := service.NewUserService(ur)
 	hdl := web.NewUserHandler(us)
 	hdl.RegisterRoutes(server)
