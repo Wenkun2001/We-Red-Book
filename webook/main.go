@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Wenkun2001/We-Red-Book/webook/config"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
@@ -14,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -22,6 +24,11 @@ func main() {
 	db := initDB()
 	server := initWebServer()
 	initUserHdl(db, server)
+
+	//server := gin.Default()
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "hello, start up!")
+	})
 	server.Run(":8090")
 
 }
@@ -35,7 +42,8 @@ func initUserHdl(db *gorm.DB, server *gin.Engine) {
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"))
+	//db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		panic(err)
 	}
