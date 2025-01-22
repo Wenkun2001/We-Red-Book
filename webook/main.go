@@ -6,10 +6,12 @@ import (
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web/middleware"
+	"github.com/Wenkun2001/We-Red-Book/webook/pkg/ginx/middleware/ratelimit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
@@ -70,6 +72,11 @@ func initWebServer() *gin.Engine {
 		println("这是我的 Middleware")
 	})
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 1).Build())
+
 	useJWT(server)
 	//useSession(server)
 	return server
@@ -84,16 +91,18 @@ func useSession(server *gin.Engine) {
 	login := &middleware.LoginMiddlewareBuilder{}
 	// 存储数据的，也就是你 userId 存哪里
 	// 直接存 cookie
-	//store := cookie.NewStore([]byte("secret"))
+	store := cookie.NewStore([]byte("secret"))
 	// 基于内存的实现
 	//store := memstore.NewStore([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"),
 	//	[]byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
-	store, err := redis.NewStore(16, "tcp",
-		"localhost:6379", "",
-		[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"),
-		[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgA"))
-	if err != nil {
-		panic(err)
-	}
+
+	//store, err := redis.NewStore(16, "tcp",
+	//	"localhost:6379", "",
+	//	[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"),
+	//	[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgA"))
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 }
