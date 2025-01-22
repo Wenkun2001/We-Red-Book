@@ -6,7 +6,9 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"time"
 )
 
 const (
@@ -38,7 +40,8 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	// POST /users/signup
 	ug.POST("/signup", h.SignUp)
 	// POST /users/login
-	ug.POST("/login", h.Login)
+	//ug.POST("/login", h.Login)
+	ug.POST("/login", h.LoginJWT)
 	// POST /users/edit
 	ug.POST("/edit", h.Edit)
 	// GET /users/profile
@@ -96,6 +99,40 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	}
 }
 
+func (h *UserHandler) LoginJWT(ctx *gin.Context) {
+	type Req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	u, err := h.svc.Login(ctx, req.Email, req.Password)
+	switch err {
+	case nil:
+		uc := UserClaims{
+			Uid: u.Id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				// 1分钟过期
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+		tokenStr, err := token.SignedString(JWTKey)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统错误")
+			return
+		}
+		ctx.Header("x-jwt-token", tokenStr)
+		ctx.String(http.StatusOK, "登录成功")
+	case service.ErrInvalidUserOrPassword:
+		ctx.String(http.StatusOK, "用户名或者密码不对")
+	default:
+		ctx.String(http.StatusOK, "系统错误")
+	}
+}
+
 func (h *UserHandler) Login(ctx *gin.Context) {
 	type Req struct {
 		Email    string `json:"email"`
@@ -129,10 +166,17 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 
 func (h *UserHandler) Edit(ctx *gin.Context) {
 	// 嵌入一段刷新过期时间的代码
-
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context) {
+	//us := ctx.MustGet("user").(UserClaims)
 	ctx.String(http.StatusOK, "这是 profile")
 	// 嵌入一段刷新过期时间的代码
+}
+
+var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgk")
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid int64
 }

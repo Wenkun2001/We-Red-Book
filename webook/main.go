@@ -37,6 +37,7 @@ func initDB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+
 	err = dao.InitTables(db)
 	if err != nil {
 		panic(err)
@@ -52,7 +53,9 @@ func initWebServer() *gin.Engine {
 		//AllowOrigins:     []string{"http://localhost:3000"},
 		AllowCredentials: true,
 
-		AllowHeaders: []string{"Content-Type"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
+		// 这个是允许前端访问你的后端响应中带的头部
+		ExposeHeaders: []string{"x-jwt-token"},
 		//AllowHeaders: []string{"content-type"},
 		//AllowMethods: []string{"POST"},
 		AllowOriginFunc: func(origin string) bool {
@@ -66,6 +69,18 @@ func initWebServer() *gin.Engine {
 	}), func(ctx *gin.Context) {
 		println("这是我的 Middleware")
 	})
+
+	useJWT(server)
+	//useSession(server)
+	return server
+}
+
+func useJWT(server *gin.Engine) {
+	login := middleware.LoginJWTMiddlewareBuilder{}
+	server.Use(login.CheckLogin())
+}
+
+func useSession(server *gin.Engine) {
 	login := &middleware.LoginMiddlewareBuilder{}
 	// 存储数据的，也就是你 userId 存哪里
 	// 直接存 cookie
@@ -81,7 +96,4 @@ func initWebServer() *gin.Engine {
 		panic(err)
 	}
 	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
-	return server
-
-	return server
 }
