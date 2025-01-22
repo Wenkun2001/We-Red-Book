@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/domain"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/cache"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
+	"log"
 	"time"
 )
 
@@ -13,12 +15,14 @@ var (
 )
 
 type UserRepository struct {
-	dao *dao.UserDAO
+	dao   *dao.UserDAO
+	cache *cache.UserCache
 }
 
-func NewUserRepository(dao *dao.UserDAO) *UserRepository {
+func NewUserRepository(dao *dao.UserDAO, c *cache.UserCache) *UserRepository {
 	return &UserRepository{
-		dao: dao,
+		dao:   dao,
+		cache: c,
 	}
 }
 
@@ -64,9 +68,50 @@ func (repo *UserRepository) UpdateNonZeroFields(ctx context.Context, user domain
 }
 
 func (repo *UserRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
+	du, err := repo.cache.Get(ctx, uid)
+	// 只要 err 为 nil, 就返回
+	if err == nil {
+		return du, nil
+	}
+
+	// err 不为 nil, 就要查询数据库
+	// err 有两种可能
+	// 1. key不存在，说明 redis 是正常的
+	// 2. 访问 redis 有问题，可能是网络有问题，也可能是 redis 本身就崩溃了
+
 	u, err := repo.dao.FindById(ctx, uid)
 	if err != nil {
 		return domain.User{}, err
 	}
-	return repo.toDomain(u), nil
+	du = repo.toDomain(u)
+	err = repo.cache.Set(ctx, du)
+	if err != nil {
+		// 网络崩了，也可能是 redis 崩了
+		log.Println(err)
+	}
+	return du, nil
+}
+
+func (repo *UserRepository) FindByIdV1(ctx context.Context, uid int64) (domain.User, error) {
+	du, err := repo.cache.Get(ctx, uid)
+	// 只要 err 为 nil， 就返回
+	switch err {
+	case nil:
+		return du, nil
+	case cache.ErrKeyNotExist:
+		u, err := repo.dao.FindById(ctx, uid)
+		if err != nil {
+			return domain.User{}, err
+		}
+		du = repo.toDomain(u)
+		err = repo.cache.Set(ctx, du)
+		if err != nil {
+			// 网络崩溃，也可能是 redis 崩溃
+			log.Println(err)
+		}
+		return du, nil
+	default:
+		// 接近降级的写法
+		return domain.User{}, err
+	}
 }
