@@ -6,6 +6,8 @@ import (
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/cache"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/service/sms"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/service/sms/localsms"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web/middleware"
 	"github.com/gin-contrib/cors"
@@ -22,11 +24,13 @@ import (
 
 func main() {
 	db := initDB()
+
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: config.Config.Redis.Addr,
 	})
 	server := initWebServer()
-	initUserHdl(db, redisClient, server)
+	codeSvc := initCodeSvc(redisClient)
+	initUserHdl(db, redisClient, codeSvc, server)
 
 	//server := gin.Default()
 	server.GET("/hello", func(ctx *gin.Context) {
@@ -36,14 +40,23 @@ func main() {
 
 }
 
-func initUserHdl(db *gorm.DB, redisClient redis.Cmdable, server *gin.Engine) {
-
+func initUserHdl(db *gorm.DB, redisClient redis.Cmdable, codeSvc *service.CodeService, server *gin.Engine) {
 	ud := dao.NewUserDAO(db)
 	uc := cache.NewUserCache(redisClient)
 	ur := repository.NewUserRepository(ud, uc)
 	us := service.NewUserService(ur)
-	hdl := web.NewUserHandler(us)
+	hdl := web.NewUserHandler(us, codeSvc)
 	hdl.RegisterRoutes(server)
+}
+
+func initCodeSvc(redisClient redis.Cmdable) *service.CodeService {
+	cc := cache.NewCodeCache(redisClient)
+	crepo := repository.NewCodeRepository(cc)
+	return service.NewCodeService(crepo, initMemorySms())
+}
+
+func initMemorySms() sms.Service {
+	return localsms.NewService()
 }
 
 func initDB() *gorm.DB {

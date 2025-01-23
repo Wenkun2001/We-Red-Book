@@ -18,7 +18,7 @@ type UserCache struct {
 
 func (c *UserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 	key := c.key(uid)
-	// 我假定这个地方用 JSON 来
+	// 假定这个地方用 JSON 来
 	data, err := c.cmd.Get(ctx, key).Result()
 	if err != nil {
 		return domain.User{}, err
@@ -34,7 +34,7 @@ func (c *UserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 
 func (c *UserCache) Set(ctx context.Context, du domain.User) error {
 	key := c.key(du.Id)
-	// 我假定这个地方用 JSON
+	// 假定这个地方用 JSON
 	data, err := json.Marshal(du)
 	if err != nil {
 		return err
