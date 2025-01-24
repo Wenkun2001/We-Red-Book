@@ -14,17 +14,25 @@ var (
 	ErrRecordNotFound = gorm.ErrRecordNotFound
 )
 
-type UserDAO struct {
+type UserDAO interface {
+	Insert(ctx context.Context, u User) error
+	FindByEmail(ctx context.Context, email string) (User, error)
+	UpdateById(ctx context.Context, entity User) error
+	FindById(ctx context.Context, uid int64) (User, error)
+	FindByPhone(ctx context.Context, phone string) (User, error)
+}
+
+type GormUserDAO struct {
 	db *gorm.DB
 }
 
-func NewUserDAO(db *gorm.DB) *UserDAO {
-	return &UserDAO{
+func NewUserDAO(db *gorm.DB) UserDAO {
+	return &GormUserDAO{
 		db: db,
 	}
 }
 
-func (dao *UserDAO) Insert(ctx context.Context, u User) error {
+func (dao *GormUserDAO) Insert(ctx context.Context, u User) error {
 	now := time.Now().UnixMilli()
 	u.Ctime = now
 	u.Utime = now
@@ -39,13 +47,13 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
+func (dao *GormUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email=?", email).First(&u).Error
 	return u, err
 }
 
-func (dao *UserDAO) UpdateById(ctx context.Context, entity User) error {
+func (dao *GormUserDAO) UpdateById(ctx context.Context, entity User) error {
 	// 这种写法依赖于 GORM 的零值和主键更新特性
 	// Update 非零值 WHERE id = ?
 	//return dao.db.WithContext(ctx).Updates(&entity).Error
@@ -58,13 +66,13 @@ func (dao *UserDAO) UpdateById(ctx context.Context, entity User) error {
 	}).Error
 }
 
-func (dao *UserDAO) FindById(ctx context.Context, uid int64) (User, error) {
+func (dao *GormUserDAO) FindById(ctx context.Context, uid int64) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("id = ?", uid).First(&res).Error
 	return res, err
 }
 
-func (dao *UserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (dao *GormUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&res).Error
 	return res, err
