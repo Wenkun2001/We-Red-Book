@@ -23,7 +23,7 @@ type RedisUserCache struct {
 
 func (c *RedisUserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 	key := c.key(uid)
-	// 假定这个地方用 JSON 来
+	// 我假定这个地方用 JSON 来
 	data, err := c.cmd.Get(ctx, key).Result()
 	if err != nil {
 		return domain.User{}, err
@@ -39,7 +39,7 @@ func (c *RedisUserCache) Get(ctx context.Context, uid int64) (domain.User, error
 
 func (c *RedisUserCache) Set(ctx context.Context, du domain.User) error {
 	key := c.key(du.Id)
-	// 假定这个地方用 JSON
+	// 我假定这个地方用 JSON
 	data, err := json.Marshal(du)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ type UserCacheV1 struct {
 	client *redis.Client
 }
 
-func NewUserCache(cmd redis.Cmdable) *RedisUserCache {
+func NewUserCache(cmd redis.Cmdable) UserCache {
 	return &RedisUserCache{
 		cmd:        cmd,
 		expiration: time.Minute * 15,

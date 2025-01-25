@@ -22,17 +22,17 @@ type UserDAO interface {
 	FindByPhone(ctx context.Context, phone string) (User, error)
 }
 
-type GormUserDAO struct {
+type GORMUserDAO struct {
 	db *gorm.DB
 }
 
 func NewUserDAO(db *gorm.DB) UserDAO {
-	return &GormUserDAO{
+	return &GORMUserDAO{
 		db: db,
 	}
 }
 
-func (dao *GormUserDAO) Insert(ctx context.Context, u User) error {
+func (dao *GORMUserDAO) Insert(ctx context.Context, u User) error {
 	now := time.Now().UnixMilli()
 	u.Ctime = now
 	u.Utime = now
@@ -47,32 +47,33 @@ func (dao *GormUserDAO) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (dao *GormUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
+func (dao *GORMUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email=?", email).First(&u).Error
 	return u, err
 }
 
-func (dao *GormUserDAO) UpdateById(ctx context.Context, entity User) error {
+func (dao *GORMUserDAO) UpdateById(ctx context.Context, entity User) error {
+
 	// 这种写法依赖于 GORM 的零值和主键更新特性
 	// Update 非零值 WHERE id = ?
 	//return dao.db.WithContext(ctx).Updates(&entity).Error
-
-	return dao.db.WithContext(ctx).Model(&entity).Where("id = ?", entity.Id).Updates(map[string]any{
-		"utime":    time.Now().UnixMilli(),
-		"nickname": entity.Nickname,
-		"birthday": entity.Birthday,
-		"about_me": entity.AboutMe,
-	}).Error
+	return dao.db.WithContext(ctx).Model(&entity).Where("id = ?", entity.Id).
+		Updates(map[string]any{
+			"utime":    time.Now().UnixMilli(),
+			"nickname": entity.Nickname,
+			"birthday": entity.Birthday,
+			"about_me": entity.AboutMe,
+		}).Error
 }
 
-func (dao *GormUserDAO) FindById(ctx context.Context, uid int64) (User, error) {
+func (dao *GORMUserDAO) FindById(ctx context.Context, uid int64) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("id = ?", uid).First(&res).Error
 	return res, err
 }
 
-func (dao *GormUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (dao *GORMUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&res).Error
 	return res, err

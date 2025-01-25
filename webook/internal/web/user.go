@@ -6,7 +6,8 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
+	"log"
 	"net/http"
 	"time"
 )
@@ -102,7 +103,7 @@ func (h *UserHandler) SendSMSLoginCode(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	// 这边校验 Req
+	// 你这边可以校验 Req
 	if req.Phone == "" {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 4,
@@ -126,7 +127,8 @@ func (h *UserHandler) SendSMSLoginCode(ctx *gin.Context) {
 			Code: 5,
 			Msg:  "系统错误",
 		})
-		// 补日志
+		// 补日志的
+		log.Println(err)
 	}
 }
 
@@ -264,16 +266,18 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
+	//sess := sessions.Default(ctx)
+	//sess.Get("uid")
 	uc, ok := ctx.MustGet("user").(UserClaims)
 	if !ok {
-		// ctx.String(http.StatusOK, "系统错误")
+		//ctx.String(http.StatusOK, "系统错误")
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 	// 用户输入不对
 	birthday, err := time.Parse(time.DateOnly, req.Birthday)
 	if err != nil {
-		// ctx.String(http.StatusOK, "系统错误")
+		//ctx.String(http.StatusOK, "系统错误")
 		ctx.String(http.StatusOK, "生日格式不对")
 		return
 	}
@@ -294,6 +298,7 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 	//us := ctx.MustGet("user").(UserClaims)
 	//ctx.String(http.StatusOK, "这是 profile")
 	// 嵌入一段刷新过期时间的代码
+
 	uc, ok := ctx.MustGet("user").(UserClaims)
 	if !ok {
 		//ctx.String(http.StatusOK, "系统错误")
@@ -306,10 +311,10 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 		return
 	}
 	type User struct {
-		Email    string `json:"email"`
 		Nickname string `json:"nickname"`
-		Birthday string `json:"birthday"`
+		Email    string `json:"email"`
 		AboutMe  string `json:"aboutMe"`
+		Birthday string `json:"birthday"`
 	}
 	ctx.JSON(http.StatusOK, User{
 		Nickname: u.Nickname,
@@ -319,7 +324,7 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 	})
 }
 
-var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgk")
+var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgK")
 
 type UserClaims struct {
 	jwt.RegisteredClaims

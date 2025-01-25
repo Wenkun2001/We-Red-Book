@@ -6,7 +6,6 @@ import (
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/domain"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository"
 	"golang.org/x/crypto/bcrypt"
-	//"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -59,17 +58,19 @@ func (svc *userService) Login(ctx context.Context, email string, password string
 	return u, nil
 }
 
-func (svc *userService) UpdateNonSensitiveInfo(ctx context.Context, user domain.User) error {
+func (svc *userService) UpdateNonSensitiveInfo(ctx context.Context,
+	user domain.User) error {
 	// UpdateNicknameAndXXAnd
 	return svc.repo.UpdateNonZeroFields(ctx, user)
 }
 
-func (svc *userService) FindById(ctx context.Context, uid int64) (domain.User, error) {
+func (svc *userService) FindById(ctx context.Context,
+	uid int64) (domain.User, error) {
 	return svc.repo.FindById(ctx, uid)
 }
 
 func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
-	// 大部分用户是已经存在的用户
+	// 先找一下，我们认为，大部分用户是已经存在的用户
 	u, err := svc.repo.FindByPhone(ctx, phone)
 	if err != repository.ErrUserNotFound {
 		// 有两种情况
@@ -77,17 +78,16 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 		// err != nil，系统错误，
 		return u, err
 	}
-	// 用户没找到，就新建用户
+	// 用户没找到
 	err = svc.repo.Create(ctx, domain.User{
 		Phone: phone,
 	})
-	// 有两种可能
-	// 一种是 err 恰好是唯一索引冲突（phone）
+	// 有两种可能，一种是 err 恰好是唯一索引冲突（phone）
 	// 一种是 err != nil，系统错误
 	if err != nil && err != repository.ErrDuplicateUser {
 		return domain.User{}, err
 	}
-	// 要么 err == nil，要么ErrDuplicateUser，也代表用户存在
+	// 要么 err ==nil，要么ErrDuplicateUser，也代表用户存在
 	// 主从延迟，理论上来讲，强制走主库
 	return svc.repo.FindByPhone(ctx, phone)
 }

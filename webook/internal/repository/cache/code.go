@@ -27,14 +27,10 @@ type RedisCodeCache struct {
 	cmd redis.Cmdable
 }
 
-func NewCodeCache(cmd redis.Cmdable) *RedisCodeCache {
+func NewCodeCache(cmd redis.Cmdable) CodeCache {
 	return &RedisCodeCache{
 		cmd: cmd,
 	}
-}
-
-func (c *RedisCodeCache) key(biz, phone string) string {
-	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }
 
 func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error {
@@ -63,8 +59,12 @@ func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, code string) (b
 	case -2:
 		return false, nil
 	case -1:
-		return false, ErrCodeSendTooMany
+		return false, ErrCodeVerifyTooMany
 	default:
 		return true, nil
 	}
+}
+
+func (c *RedisCodeCache) key(biz, phone string) string {
+	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }

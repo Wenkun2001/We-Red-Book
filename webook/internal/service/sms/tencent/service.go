@@ -29,7 +29,7 @@ func (s *Service) Send(ctx context.Context, tplId string, args []string, numbers
 	}
 	for _, statusPtr := range response.Response.SendStatusSet {
 		if statusPtr == nil {
-			// 不可能到这里
+			// 不可能进来这里
 			continue
 		}
 		status := *statusPtr
@@ -42,9 +42,10 @@ func (s *Service) Send(ctx context.Context, tplId string, args []string, numbers
 }
 
 func (s *Service) toPtrSlice(data []string) []*string {
-	return slice.Map[string, *string](data, func(idx int, src string) *string {
-		return &src
-	})
+	return slice.Map[string, *string](data,
+		func(idx int, src string) *string {
+			return &src
+		})
 }
 
 func NewService(client *sms.Client, appId string, signName string) *Service {

@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// 需要手动本地环境变量跑
+// 这个需要手动跑，也就是你需要在本地搞好这些环境变量
 func TestSender(t *testing.T) {
 	secretId, ok := os.LookupEnv("SMS_SECRET_ID")
 	if !ok {
@@ -18,7 +18,9 @@ func TestSender(t *testing.T) {
 	}
 	secretKey, ok := os.LookupEnv("SMS_SECRET_KEY")
 
-	c, err := sms.NewClient(common.NewCredential(secretId, secretKey), "ap-nanjing", profile.NewClientProfile())
+	c, err := sms.NewClient(common.NewCredential(secretId, secretKey),
+		"ap-nanjing",
+		profile.NewClientProfile())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,14 +38,14 @@ func TestSender(t *testing.T) {
 			name:   "发送验证码",
 			tplId:  "1877556",
 			params: []string{"123456"},
-			// 手机号码
+			// 改成你的手机号码
 			numbers: []string{""},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err = s.Send(context.Background(), tc.tplId, tc.params, tc.numbers...)
-			assert.Equal(t, tc.wantErr, err)
+			er := s.Send(context.Background(), tc.tplId, tc.params, tc.numbers...)
+			assert.Equal(t, tc.wantErr, er)
 		})
 	}
 }
