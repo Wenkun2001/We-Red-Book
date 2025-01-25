@@ -20,19 +20,20 @@ type UserDAO interface {
 	UpdateById(ctx context.Context, entity User) error
 	FindById(ctx context.Context, uid int64) (User, error)
 	FindByPhone(ctx context.Context, phone string) (User, error)
+	FindByWechat(ctx context.Context, opendId string) (User, error)
 }
 
-type GORMUserDAO struct {
+type GormUserDAO struct {
 	db *gorm.DB
 }
 
 func NewUserDAO(db *gorm.DB) UserDAO {
-	return &GORMUserDAO{
+	return &GormUserDAO{
 		db: db,
 	}
 }
 
-func (dao *GORMUserDAO) Insert(ctx context.Context, u User) error {
+func (dao *GormUserDAO) Insert(ctx context.Context, u User) error {
 	now := time.Now().UnixMilli()
 	u.Ctime = now
 	u.Utime = now
@@ -47,13 +48,13 @@ func (dao *GORMUserDAO) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (dao *GORMUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
+func (dao *GormUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email=?", email).First(&u).Error
 	return u, err
 }
 
-func (dao *GORMUserDAO) UpdateById(ctx context.Context, entity User) error {
+func (dao *GormUserDAO) UpdateById(ctx context.Context, entity User) error {
 
 	// 这种写法依赖于 GORM 的零值和主键更新特性
 	// Update 非零值 WHERE id = ?
@@ -67,16 +68,22 @@ func (dao *GORMUserDAO) UpdateById(ctx context.Context, entity User) error {
 		}).Error
 }
 
-func (dao *GORMUserDAO) FindById(ctx context.Context, uid int64) (User, error) {
+func (dao *GormUserDAO) FindById(ctx context.Context, uid int64) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("id = ?", uid).First(&res).Error
 	return res, err
 }
 
-func (dao *GORMUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+func (dao *GormUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&res).Error
 	return res, err
+}
+
+func (dao *GormUserDAO) FindByWechat(ctx context.Context, openId string) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("wechat_open_id=?", openId).First(&u).Error
+	return u, err
 }
 
 type User struct {
@@ -93,6 +100,12 @@ type User struct {
 
 	// 代表这是一个可以为 NULL 的列
 	Phone sql.NullString `gorm:"unique"`
+
+	// 1 如果查询要求同时使用 openid 和 unionid，就要创建联合唯一索引
+	// 2 如果查询只用 openid，那么就在 openid 上创建唯一索引，或者 <openid, unionId> 联合索引
+	// 3 如果查询只用 unionid，那么就在 unionid 上创建唯一索引，或者 <unionid, openid> 联合索引
+	WechatOpenId  sql.NullString `gorm:"unique"`
+	WechatUnionId sql.NullString
 
 	// 时区，UTC 0 的毫秒数
 	// 创建时间

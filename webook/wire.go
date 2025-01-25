@@ -17,19 +17,26 @@ func InitWebServer() *gin.Engine {
 	wire.Build(
 		// 第三方依赖
 		ioc.InitRedis, ioc.InitDB,
+
 		// DAO  部分
 		dao.NewUserDAO,
+
 		// cache 部分
 		cache.NewCodeCache, cache.NewUserCache,
+
 		// repository 部分
 		repository.NewCacheUserRepository,
 		repository.NewCodeRepository,
+
 		// service 部分
 		ioc.InitSMSService,
+		ioc.InitWechatService,
 		service.NewUserService,
 		service.NewCodeService,
+
 		// handler 部分
 		web.NewUserHandler,
+		web.NewOAuth2WechatHandler,
 
 		ioc.InitGinMiddlewares,
 		ioc.InitWebServer,
