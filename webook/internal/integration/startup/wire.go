@@ -3,12 +3,12 @@
 package startup
 
 import (
-	"gitee.com/geekbang/basic-go/webook/internal/repository"
-	"gitee.com/geekbang/basic-go/webook/internal/repository/cache"
-	"gitee.com/geekbang/basic-go/webook/internal/repository/dao"
-	"gitee.com/geekbang/basic-go/webook/internal/service"
-	"gitee.com/geekbang/basic-go/webook/internal/web"
-	"gitee.com/geekbang/basic-go/webook/ioc"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/cache"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
+	"github.com/Wenkun2001/We-Red-Book/webook/internal/web"
+	"github.com/Wenkun2001/We-Red-Book/webook/ioc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 )
