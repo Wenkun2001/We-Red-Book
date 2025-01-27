@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service/oauth2/wechat"
+	ijwt "github.com/Wenkun2001/We-Red-Book/webook/internal/web/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	uuid "github.com/lithammer/shortuuid/v4"
@@ -11,15 +12,21 @@ import (
 )
 
 type OAuth2WechatHandler struct {
-	svc     wechat.Service
-	userSvc service.UserService
-	jwtHandler
+	ijwt.Handler
+	svc             wechat.Service
+	userSvc         service.UserService
 	key             []byte
 	stateCookieName string
 }
 
-func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.UserService) *OAuth2WechatHandler {
+type StateClaims struct {
+	jwt.RegisteredClaims
+	State string
+}
+
+func NewOAuth2WechatHandler(svc wechat.Service, hdl ijwt.Handler, userSvc service.UserService) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
+		Handler:         hdl,
 		svc:             svc,
 		userSvc:         userSvc,
 		key:             []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgB"),
@@ -55,6 +62,20 @@ func (o *OAuth2WechatHandler) Auth2URL(ctx *gin.Context) {
 	})
 }
 
+func (o *OAuth2WechatHandler) setStateCookie(ctx *gin.Context, state string) error {
+	claims := StateClaims{
+		State: state,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenStr, err := token.SignedString(o.key)
+	if err != nil {
+		return err
+	}
+	ctx.SetCookie(o.stateCookieName, tokenStr, 600, "/oauth2/wechat/callback",
+		"", false, true)
+	return nil
+}
+
 func (o *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 	err := o.verifyState(ctx)
 	if err != nil {
@@ -64,7 +85,7 @@ func (o *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 		})
 		return
 	}
-	// 你校验不校验都可以
+	// 校不校验都可以
 	code := ctx.Query("code")
 	// state := ctx.Query("state")
 	wechatInfo, err := o.svc.VerifyCode(ctx, code)
@@ -83,7 +104,11 @@ func (o *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 		})
 		return
 	}
-	o.setJWTToken(ctx, u.Id)
+	err = o.SetLoginToken(ctx, u.Id)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
 	ctx.JSON(http.StatusOK, Result{
 		Msg: "OK",
 	})
@@ -104,30 +129,8 @@ func (o *OAuth2WechatHandler) verifyState(ctx *gin.Context) error {
 		return fmt.Errorf("解析 token 失败 %w", err)
 	}
 	if state != sc.State {
-		// state 不匹配，有人搞你
+		// state 不匹配，有人搞坏
 		return fmt.Errorf("state 不匹配")
 	}
 	return nil
-}
-
-func (o *OAuth2WechatHandler) setStateCookie(ctx *gin.Context,
-	state string) error {
-	claims := StateClaims{
-		State: state,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
-	tokenStr, err := token.SignedString(o.key)
-	if err != nil {
-
-		return err
-	}
-	ctx.SetCookie(o.stateCookieName, tokenStr,
-		600, "/oauth2/wechat/callback",
-		"", false, true)
-	return nil
-}
-
-type StateClaims struct {
-	jwt.RegisteredClaims
-	State string
 }

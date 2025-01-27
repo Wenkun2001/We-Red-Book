@@ -8,6 +8,7 @@ import (
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/repository/dao"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/service"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/web"
+	ijwt "github.com/Wenkun2001/We-Red-Book/webook/internal/web/jwt"
 	"github.com/Wenkun2001/We-Red-Book/webook/ioc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
@@ -36,6 +37,7 @@ func InitWebServer() *gin.Engine {
 
 		// handler 部分
 		web.NewUserHandler,
+		ijwt.NewRedisJWTHandler,
 		web.NewOAuth2WechatHandler,
 
 		ioc.InitGinMiddlewares,
