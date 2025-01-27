@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Wenkun2001/We-Red-Book/webook/internal/domain"
+	"github.com/Wenkun2001/We-Red-Book/webook/pkg/logger"
 	"net/http"
 	"net/url"
 )
@@ -20,6 +21,7 @@ type service struct {
 	appID     string
 	appSecret string
 	client    *http.Client
+	l         logger.LoggerV1
 }
 
 type Result struct {
@@ -40,11 +42,12 @@ type Result struct {
 	ErrMsg  string `json:"errmsg"`
 }
 
-func NewService(appID string, appSecret string) Service {
+func NewService(appID string, appSecret string, l logger.LoggerV1) Service {
 	return &service{
 		appID:     appID,
 		appSecret: appSecret,
 		client:    http.DefaultClient,
+		l:         l,
 	}
 }
 
