@@ -14,6 +14,7 @@ var ErrKeyNotExist = redis.Nil
 type UserCache interface {
 	Get(ctx context.Context, uid int64) (domain.User, error)
 	Set(ctx context.Context, du domain.User) error
+	Del(ctx context.Context, id int64) error
 }
 
 type RedisUserCache struct {
@@ -23,8 +24,9 @@ type RedisUserCache struct {
 
 func (c *RedisUserCache) Get(ctx context.Context, uid int64) (domain.User, error) {
 	key := c.key(uid)
-	// 我假定这个地方用 JSON 来
+	// 假定这个地方用 JSON 来
 	data, err := c.cmd.Get(ctx, key).Result()
+	//data, err := c.cmd.Get(ctx, key).Bytes()
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -45,6 +47,10 @@ func (c *RedisUserCache) Set(ctx context.Context, du domain.User) error {
 		return err
 	}
 	return c.cmd.Set(ctx, key, data, c.expiration).Err()
+}
+
+func (c *RedisUserCache) Del(ctx context.Context, id int64) error {
+	return c.cmd.Del(ctx, c.key(id)).Err()
 }
 
 func (c *RedisUserCache) key(uid int64) string {

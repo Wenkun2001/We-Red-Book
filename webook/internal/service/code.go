@@ -12,9 +12,9 @@ var ErrCodeSendTooMany = repository.ErrCodeSendTooMany
 
 type CodeService interface {
 	Send(ctx context.Context, biz, phone string) error
-	Verify(ctx context.Context,
-		biz, phone, inputCode string) (bool, error)
+	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
 }
+
 type codeService struct {
 	repo repository.CodeRepository
 	sms  sms.Service

@@ -122,12 +122,27 @@ func (repo *CachedUserRepository) toEntity(u domain.User) dao.User {
 	}
 }
 
-func (repo *CachedUserRepository) UpdateNonZeroFields(ctx context.Context,
-	user domain.User) error {
-	return repo.dao.UpdateById(ctx, repo.toEntity(user))
+func (repo *CachedUserRepository) UpdateNonZeroFields(ctx context.Context, user domain.User) error {
+	// 更新 DB 之后，删除
+	err := repo.dao.UpdateById(ctx, repo.toEntity(user))
+	if err != nil {
+		return err
+	}
+	// 延迟一秒
+	time.AfterFunc(time.Second, func() {
+		_ = repo.cache.Del(ctx, user.Id)
+	})
+	return repo.cache.Del(ctx, user.Id)
 }
 
 func (repo *CachedUserRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
+	//if ctx.Value("x-stress") != true {
+	//	du, err := repo.cache.Get(ctx, uid)
+	//	// 只要 err 为 nil，就返回
+	//	if err == nil {
+	//		return du, nil
+	//	}
+	//}
 	du, err := repo.cache.Get(ctx, uid)
 	// 只要 err 为 nil，就返回
 	if err == nil {
