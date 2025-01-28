@@ -59,8 +59,7 @@ type CacheConfig struct {
 //	}, nil
 //}
 
-func NewCacheUserRepository(dao dao.UserDAO,
-	c cache.UserCache) UserRepository {
+func NewCachedUserRepository(dao dao.UserDAO, c cache.UserCache) UserRepository {
 	return &CachedUserRepository{
 		dao:   dao,
 		cache: c,
